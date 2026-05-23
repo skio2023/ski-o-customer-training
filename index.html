@@ -167,7 +167,7 @@ body { display: flex; flex-direction: column; }
   background: var(--coach-bg); color: var(--warm); border: 1px solid var(--coach-border);
   font-size: 13px; max-width: 85%; text-align: left;
 }
-.coach .bubble::before { content: '💡 教練提示：'; font-weight: 600; display: block; margin-bottom: 4px; font-size: 12px; }
+.coach .bubble::before { content: '💡 提示：'; font-weight: 600; display: block; margin-bottom: 4px; font-size: 12px; }
 
 /* Image indicator in chat */
 .image-indicator {
@@ -820,8 +820,220 @@ const CUSTOMER_PERSONAS_INDOOR = [
 ];
 
 // ═════════════════════════════════════════
-// ③ State
+// ②-B 白馬套裝知識庫
 // ═════════════════════════════════════════
+const KNOWLEDGE_BASE_HAKUBA = `
+# SKI-O 白馬滑雪套裝知識庫
+
+## 產品總覽
+- 五天四夜三天滑雪的日本白馬滑雪套裝
+- 包含住宿、課程、雪票、基礎雪具、雪場周圍接送、機場至雪場來回包車
+- 集合：成田機場（其他可客製：上野車站、名古屋）
+- 雪場：Hakuba Valley 10 大雪場（八方尾根、栂池高原、岩岳、五竜＆Hakuba 47 等）
+- 4 人開團、6 人以上可客製化包團
+
+## 費用結構
+### 一般梯次
+- 超早鳥（05/01-06/30）：成人 $49,800（原價 $53,800，-$4,000）、兒童 $45,800
+- 早鳥（07/01-09/06）：成人 $50,800（-$3,000）、兒童 $46,800
+- 原價（09/07 起）：成人 $53,800、兒童 $49,800、幼兒 $29,800
+### 跨年梯次（12/30-01/03）
+- 成人 $55,800、兒童 $52,800、幼兒 $32,800（不適用早鳥）
+### 春雪梯次（03/08 起）
+- 成人 $49,800（超早鳥 $45,800）、兒童 $46,800
+
+## 年齡分級
+- 12+ 歲：成人
+- 7-11 歲：兒童
+- 2-6 歲：幼兒 $29,800（不適用早鳥，適用團報）
+- 不佔床嬰兒：$8,800（內部選項，客戶問到才提供）
+- 7 歲以下 / 55 歲以上：必須加購升級私人課
+- 18 歲以下：需家長陪同
+
+## 優惠系統
+- 超早鳥 -$4,000 / 早鳥 -$3,000（擇一）
+- 老圈友 -$900（可疊加任何優惠）
+- 團報（早鳥過後）：4 人 -$1,000 / 6 人 -$1,600 / 8 人 -$3,000
+- 紅 tag 梯次（跨年/春節/天皇誕生日）：不適用早鳥，視情況給團報
+
+## 套裝包含 8 大項
+1. 兩天半日團體課（1:4 小班制）
+2. 三天雪票
+3. 三天基礎裝備（雪板、雪鞋、頭盔）
+4. 四晚日式溫泉飯店（含早餐、獨立衛浴、溫泉）
+5. 雪場交通
+6. 機場至白馬來回包車（7-9 人座、中文司機）
+7. 美食預約服務
+8. 滑雪保險
+
+## 套裝不包含
+- 機票、晚餐、個人消費、雪服/護目鏡/手套、護臀護膝
+- 單眼美照（已改為加購）
+
+## 加購升級
+- 升級全日課程（一天）+$6,000（1-4 人均分）
+- 升級 1:1 +$13,000/人、1:2 +$5,000/人、1:3 +$2,000/人
+- 單人房（無衛浴）+$2,200/天、（含衛浴）+$3,600/天
+- 觀光包車 ¥55,000/車
+
+## 可扣項目
+- 不上課 -$4,000、裝備自備 -$2,000（三項全備）、不需包車 -$4,000
+- 全程不滑 -$10,000（仍含包車）
+
+## 包車人數規則
+- 4 位以上：套裝包含包車
+- 不足 4 位：選項 A 自行前往（-$4,000）或選項 B 加購專屬包車
+
+## 報名流程
+1. 客戶提出需求 → 員工報價
+2. 填寫個人資料表單（每人一份）
+3. 電子簽署合約
+4. 定金 $20,000/人（3 天內）
+5. 尾款（出發前 60 天）
+6. 行前 PDF（雪季前 1 個月）
+
+## 付款
+- 匯款：玉山銀行（808）水湳分行（0521）雪圈有限公司 0521-940-251081
+- 刷卡：+3.5% 手續費
+- 匯款後告知末五碼
+
+## 退款取消
+- 出發前 60 天前：可退（扣作業費）
+- 出發前 60 天內：按合約比例退
+- 出發前 14 天內：可自由轉讓（免手續費）
+- 未成團：全額退款
+- 退款作業 7-10 工作天
+
+## 課程規定
+- 1:4 小班制、半日 3 小時、全日 6 小時（含 1 小時休息）
+- 全部中文教練、國際證照
+- 不提供夜滑
+
+## 餐廳預約
+- 押金 ¥10,000/人、最晚出發前 1 週告知
+- 拉麵店/鰻魚飯通常無法預約
+- 住宿在白馬村落市中心，部分餐廳步行可達
+
+## 裝備
+- 僅 Boa 款式（無 Stepon）
+- 抵達前送到住宿、可試穿、隔天可更換
+- 兒童門檻：鞋號 ≥15cm、身高 ≥100cm
+
+## 客製化包團
+- 6 人以上、可調整日期/天數/住宿/課程/接送/餐飲
+- 客戶提需求 → 3 天內回報價
+
+## SKI-O 客服哲學
+- 用「定金」不用「訂金」
+- 結尾用「哦、唷、~」不用「喔」
+- 節制式推薦、不主動打折
+- 先同理再規則
+`;
+
+// ═════════════════════════════════════════
+// ②-C 白馬客戶人格（6 個）
+// ═════════════════════════════════════════
+const CUSTOMER_PERSONAS_HAKUBA = [
+  {
+    id: 'detail-asker',
+    name: '龜毛詳問型',
+    description: '什麼都要問清楚，會逐條確認套裝內容',
+    traits: '訊息長、問題多、會列點問。會問「雪具是什麼牌子」「保險涵蓋什麼」「飯店是幾星級」。需要員工耐心逐一回覆。回覆完整度高會建立信任。',
+    examples: [
+      '你好，想了解一下白馬套裝的細節',
+      '套裝包含的雪具是什麼牌子？有 Stepon 嗎？',
+      '飯店有獨立衛浴嗎？溫泉是 24 小時開放嗎？',
+      '保險涵蓋哪些項目？有沒有保單可以看？',
+      '機場到白馬大概幾小時？中間有休息站嗎？'
+    ]
+  },
+  {
+    id: 'family-planner',
+    name: '精明守序家庭型',
+    description: '帶小孩的家庭客戶，需要確認兒童相關規則',
+    traits: '會問兒童費用、年齡分級、是否需要加購私人課。決策偏理性、會比價。可能有幼兒需要確認佔床問題。重視安全。',
+    examples: [
+      '我們一家四口，兩大兩小',
+      '小朋友 5 歲跟 9 歲，費用怎麼算？',
+      '5 歲的需要加購什麼嗎？',
+      '你們跟其他家比價格好像比較高',
+      '有什麼優惠可以用？'
+    ]
+  },
+  {
+    id: 'vip-customizer',
+    name: '高消費客製主揪',
+    description: '8 人以上團體，想客製化包團',
+    traits: '預算高、要求多、期待尊榮感。會問包棟、私人教練、觀光行程。決策快但細節多。需要員工主動整理需求。',
+    examples: [
+      '我們大概 10 個人想去白馬',
+      '可以包棟嗎？想要有私人空間',
+      '能不能安排一天觀光？長野市有什麼好玩的',
+      '教練可以全部安排 1 對 2 嗎？',
+      '費用大概抓多少？'
+    ]
+  },
+  {
+    id: 'budget-hesitant',
+    name: '預算猶豫型',
+    description: '有興趣但價格是門檻，需要引導找到合適方案',
+    traits: '會說「我再考慮」「有沒有更便宜的」。不會直接說太貴，但會暗示。需要員工從優惠機制找空間，不直接砍價。',
+    examples: [
+      '你好 想問白馬套裝',
+      '5 萬多有點超出預算',
+      '有沒有什麼優惠？',
+      '春雪跟一般差在哪？',
+      '我再考慮一下好了'
+    ]
+  },
+  {
+    id: 'returning-friend',
+    name: '老圈友回購型',
+    description: '去年參加過 SKI-O 行程，想再次報名',
+    traits: '熟悉 SKI-O、知道基本流程。會直接問梯次和優惠。可能帶新朋友一起。會問老圈友優惠怎麼用、能不能疊加。語氣親切。',
+    examples: [
+      '嗨～去年有參加你們的白馬團',
+      '今年想再去，有什麼優惠嗎？',
+      '老圈友的 900 可以跟早鳥疊嗎？',
+      '我想帶 3 個朋友一起去',
+      '直接報名就好嗎？流程跟去年一樣？'
+    ]
+  },
+  {
+    id: 'solo-anxious',
+    name: '獨自一人型',
+    description: '一個人想參加，擔心沒人作伴',
+    traits: '會問「一個人可以報名嗎」「會不會很尷尬」。需要安撫和鼓勵。關心會不會被分到不認識的人一起住。可能問包車怎麼辦。',
+    examples: [
+      '請問一個人也可以報名嗎？',
+      '會不會跟不認識的人住同一間？',
+      '我是完全新手，一個人去會不會很奇怪',
+      '包車的話一個人怎麼算？',
+      '你們之前有一個人參加的嗎？'
+    ]
+  }
+];
+
+// ═════════════════════════════════════════
+// ②-D 動態選擇知識庫和人格
+// ═════════════════════════════════════════
+function getKnowledgeBase() {
+  if (currentService === 'hakuba') return KNOWLEDGE_BASE_HAKUBA;
+  if (currentService === 'mixed') return KNOWLEDGE_BASE_INDOOR + '\n\n---\n\n' + KNOWLEDGE_BASE_HAKUBA;
+  return KNOWLEDGE_BASE_INDOOR;
+}
+
+function getPersonas() {
+  if (currentService === 'hakuba') return CUSTOMER_PERSONAS_HAKUBA;
+  if (currentService === 'mixed') return [...CUSTOMER_PERSONAS_INDOOR, ...CUSTOMER_PERSONAS_HAKUBA];
+  return CUSTOMER_PERSONAS_INDOOR;
+}
+
+function getServiceLabel() {
+  if (currentService === 'hakuba') return '白馬滑雪套裝';
+  if (currentService === 'mixed') return '混合（室內+白馬）';
+  return '室內滑雪課程';
+}
 let conversationHistory = [];
 let currentScenario = null;
 let currentPersona = null;
@@ -867,7 +1079,7 @@ function selectMode(mode) {
   $btnNew.disabled = false;
   $modeIndicator.textContent = mode === 'guided' ? '🌱 引導式' : '🌳 獨立式';
   $imageBtnRow.style.display = 'flex';
-  $personaEmpty.textContent = `已選擇：${getServiceName()}（${mode === 'guided' ? '引導式' : '獨立式'}）。點擊「開始新練習」。`;
+  $personaEmpty.textContent = `已選擇：${getServiceLabel()}（${mode === 'guided' ? '引導式' : '獨立式'}）。點擊「開始新練習」。`;
   // 動態生成圖片按鈕
   updateImageButtons();
 }
@@ -973,17 +1185,17 @@ async function startNewPractice() {
   clearFeedback();
   setStatus('生成情境中...');
 
-  const personas = CUSTOMER_PERSONAS_INDOOR;
+  const personas = getPersonas();
   currentPersona = personas[Math.floor(Math.random() * personas.length)];
 
   showSystemMessage('AI 正在生成新的客戶情境...');
   showTypingIndicator();
 
   try {
-    const scenarioPrompt = `你是 SKI-O 室內滑雪課程客服訓練系統的客戶模擬器設計師。
+    const scenarioPrompt = `你是 SKI-O ${getServiceLabel()}客服訓練系統的客戶模擬器設計師。
 
 知識庫摘要：
-${KNOWLEDGE_BASE_INDOOR}
+${getKnowledgeBase()}
 
 人格範本：
 名稱：${currentPersona.name}
@@ -1071,29 +1283,20 @@ ${currentPersona.examples.map(e => '- ' + e).join('\n')}
 // ═════════════════════════════════════════
 function generateFirstHint(scenario) {
   const hints = [];
-  const details = scenario.scenarioDetails;
   
-  if (details.groupSize) hints.push(`客戶人數：${details.groupSize}`);
-  if (details.skillLevel) hints.push(`滑行程度：${details.skillLevel}`);
-  
+  // 只根據客戶「開場白」能看出的資訊給提示
+  hints.push('根據客戶的訊息，先判斷他的需求');
   hints.push('建議先友善問候、確認需求（人數、經驗、板別、目的）再推薦方案');
-  
-  if (details.skillLevel && details.skillLevel.includes('初學')) {
-    hints.push('客戶是新手 → 推體驗課最安全');
-  }
-  if (details.specialRequest) {
-    hints.push(`特殊考量：${details.specialRequest}`);
-  }
   
   return hints.join('\n');
 }
 
 async function generateGuidedHint(staffMessage) {
   try {
-    const hintPrompt = `你是 SKI-O 室內滑雪課程的資深教練，正在帶**新員工邊練習邊學習**。練習就是學習的場景 — 員工還在記憶手冊內容，你要主動提供相關知識點、規則、可用工具，幫他們建立記憶，但不要直接寫好整段答案讓他們照抄。
+    const hintPrompt = `你是 SKI-O ${getServiceLabel()}的資深教練，正在帶**新員工邊練習邊學習**。練習就是學習的場景 — 員工還在記憶手冊內容，你要主動提供相關知識點、規則、可用工具，幫他們建立記憶，但不要直接寫好整段答案讓他們照抄。
 
 知識庫：
-${KNOWLEDGE_BASE_INDOOR}
+${getKnowledgeBase()}
 
 目前情境：
 客戶：${currentScenario.customerNickname}
@@ -1106,23 +1309,22 @@ ${staffMessage}
 【教練哲學】
 你是「邊練習邊教學」的教練，不是考官也不是保母。每次提示都要讓員工**多學到一個東西**。
 
-- 員工方向對了 → 肯定 + **補充一個相關知識點**（例如手冊規定、可選方案、容易忽略的細節、相關章節）
+- 員工方向對了 → 肯定 + **補充一個相關知識點**（例如手冊規定、可選方案、容易忽略的細節、相關章節 / 段落）
 - 員工漏接客戶問題 → 點出客戶說了什麼 + **提供相關手冊資訊**，讓員工自己組答案
-- 員工明顯違規（報錯費用、給錯規則）→ 直接糾正 + 講對的答案 + 提醒手冊章節
-- 客戶有特殊狀況（小孩、初學者、客訴等）→ **主動帶出相關手冊知識點**，例如「兒童規則在第 2.7 章，要注意 ...」
+- 員工明顯違規（報錯費用、給錯規則）→ 直接糾正 + 講對的答案 + 提醒相關手冊位置
+- 客戶有特殊狀況（小孩、初學者、客訴、跨年梯次、特殊年齡分級等）→ **主動帶出相關手冊知識點**
 
 【提示風格 — 給資訊但不給答案】
 
 ✅ **好的提示（給資訊、給選項、給規則）**：
 - 「客戶問費用了。費用表是按板別分的（雙板 vs 單板），會員還有 9 折喔。」
-- 「客戶有 8 歲孩子，手冊第 2.7 章有兒童的特殊規則，可以翻一下。」
+- 「客戶有 8 歲孩子，手冊裡有兒童的特殊規則，可以查一下。」
 - 「這時候可以選：直接報價 / 先了解需求人數 / 傳費用表，看你判斷哪個最有效。」
-- 「客戶語氣有點焦慮，第 16.5 章提到客訴處理的『先同理再規則』，可以試試。」
+- 「客戶語氣有點焦慮，手冊裡有提到客訴處理的『先同理再規則』，可以試試。」
 
 ❌ **不好的提示（直接給答案、命令式）**：
 - 「應該回答：費用是 XXX 元」
 - 「下一步要問孩子幾歲」
-- 「現在應該先了解需求」
 
 【嚴守的語氣】
 - ❌ 不用「你應該」「你忘了」「正確答案是」
@@ -1131,7 +1333,7 @@ ${staffMessage}
 只輸出教練觀察文字，不要 JSON、不要標題、不要前綴。**2-3 句話**（學習階段需要資訊密度）。`;
 
     const hint = await callClaude(hintPrompt, [
-      { role: 'user', content: '請給教練觀察。' }
+      { role: 'user', content: '請給觀察提示。' }
     ], 300);
     
     return hint;
@@ -1168,8 +1370,8 @@ async function sendMessage() {
   showTypingIndicator();
 
   try {
-    const customerSystemPrompt = `你正在扮演 SKI-O 室內滑雪課程的潛在客戶，名字是「${currentScenario.customerNickname}」。
-你正在用 LINE 跟客服詢問室內滑雪課程。
+    const customerSystemPrompt = `你正在扮演 SKI-O ${getServiceLabel()}的潛在客戶，名字是「${currentScenario.customerNickname}」。
+你正在用 LINE 跟客服詢問${getServiceLabel()}。
 
 你的人格設定：
 - 基底：${currentPersona.name}
@@ -1245,7 +1447,7 @@ function sendImage(imageType) {
   // 觸發客戶回應
   (async () => {
     try {
-      const customerSystemPrompt = `你正在扮演 SKI-O 室內滑雪課程的潛在客戶「${currentScenario.customerNickname}」。
+      const customerSystemPrompt = `你正在扮演 SKI-O ${getServiceLabel()}的潛在客戶「${currentScenario.customerNickname}」。
 客服剛剛傳了一張「${imageType}」的圖片給你。
 你要當成真的看到了這張圖片、做出自然反應。
 可能的反應：「喔看起來蠻清楚的」「我看一下」「這個費用表很詳細」等。
@@ -1313,10 +1515,10 @@ async function endPractice() {
       return (m.role === 'user' ? '【員工】' : '【客戶】') + m.content;
     }).join('\n\n');
 
-    const evalSystemPrompt = `你是 SKI-O 室內滑雪課程的資深客服教練。你的角色是肯定員工成長、只找出真正值得改進的地方。
+    const evalSystemPrompt = `你是 SKI-O ${getServiceLabel()}的資深客服教練。你的角色是肯定員工成長、只找出真正值得改進的地方。
 
 知識庫：
-${KNOWLEDGE_BASE_INDOOR}
+${getKnowledgeBase()}
 
 客戶情境：
 - 客戶：${currentScenario.customerNickname}
@@ -1341,7 +1543,7 @@ ${KNOWLEDGE_BASE_INDOOR}
 
 ⚪ 完全不扣分（可放 improve 但只是「建議」，不影響分數）：
 - 沒主動詢問人數 / 時段 / 經驗
-- 沒主動傳費用表 / 會員制度表圖片
+- 沒主動傳費用表 / 會員制度表 / 住宿照片 等圖片
 - 順序不完美（例如先報價再了解需求）
 - 用詞風格跟手冊範例不同（只要不違反規則）
 - 簡短回覆（只要把重點答清楚）
@@ -1349,8 +1551,8 @@ ${KNOWLEDGE_BASE_INDOOR}
 - 員工用自己的話表達，跟手冊範例不一樣但意思對
 
 **目標分布：90% 的情況都應該是 4-5 星**。1-3 星只用在真的有重大錯誤。
-
-【手冊章節對照表】
+${currentService === 'hakuba' ? '' : `
+【室內手冊章節對照表】（僅適用於室內滑雪課程相關問題）
 - 報價、費用 → 第 2-5 章
 - 會員福利 → 第 8 章
 - 預約 → 第 12 章
@@ -1362,7 +1564,7 @@ ${KNOWLEDGE_BASE_INDOOR}
 - 指定教練 → 第 8.3 章
 - 命名規範 → 第 2.4.4 章
 - 容易犯的錯 → 手冊開頭
-
+`}
 【圖片使用】
 - 沒傳圖片完全不扣星
 - 有適時傳送只是錦上添花
@@ -1380,7 +1582,7 @@ ${KNOWLEDGE_BASE_INDOOR}
   "good": ["(亮點 1)", "(亮點 2)"],
   "improve": ["(只在「真的有扣分的地方」才放，沒有就留空 [])"],
   "suggestion": "(一句鼓勵或成長建議，不是糾錯)",
-  "referenceChapters": ["(只在 improve 有具體錯誤時對應章節)"]
+  "referenceChapters": ["(只在 improve 有具體錯誤時對應章節 / 段落)"]
 }
 
 【語氣鐵律】

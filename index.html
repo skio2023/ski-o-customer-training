@@ -267,6 +267,24 @@ body { display: flex; flex-direction: column; }
 .btn-modal-secondary { background: #fff; color: var(--ink); border: 1px solid var(--border); }
 .btn-modal-secondary:hover { background: var(--mist-light); }
 
+/* NAME ENTRY MODAL */
+.name-input {
+  width: 100%; height: 44px; padding: 0 14px; box-sizing: border-box;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-family: var(--font-zh); font-size: 14px; color: var(--ink);
+  margin-bottom: 16px; transition: border-color 0.15s;
+}
+.name-input:focus { outline: none; border-color: var(--ink); }
+.btn-name-submit {
+  width: 100%; height: 44px; border-radius: 8px; border: none; cursor: pointer;
+  background: var(--ink); color: #fff;
+  font-family: var(--font-zh); font-size: 14px; font-weight: 500; letter-spacing: 0.04em;
+  transition: opacity 0.15s;
+}
+.btn-name-submit:hover { opacity: 0.85; }
+.btn-name-submit:disabled { opacity: 0.3; cursor: not-allowed; }
+.name-hint { font-size: 11px; color: var(--ink-soft); margin-top: 10px; text-align: center; }
+
 /* Reopen feedback btn */
 .reopen-feedback-btn {
   position: fixed; bottom: 24px; right: 24px; z-index: 100;
@@ -392,8 +410,19 @@ body { display: flex; flex-direction: column; }
 </head>
 <body>
 
+<!-- NAME ENTRY MODAL（每次進站都會出現，可換人）-->
+<div class="modal-overlay" id="name-modal">
+  <div class="modal-box">
+    <h2>歡迎使用 SKI-O 客服訓練系統</h2>
+    <p>請輸入你的名字，這會記錄在練習紀錄裡（方便不同員工分開統計）。</p>
+    <input type="text" id="name-input" class="name-input" placeholder="例如：王小明" maxlength="20" />
+    <button class="btn-name-submit" id="btn-name-submit" onclick="submitName()" disabled>進入訓練系統</button>
+    <div class="name-hint">下次回來會自動帶入上次的名字，按確認即可</div>
+  </div>
+</div>
+
 <!-- SERVICE SELECTOR MODAL -->
-<div class="modal-overlay" id="service-modal">
+<div class="modal-overlay hidden" id="service-modal">
   <div class="modal-box">
     <h2>SKI-O 客服對話訓練系統</h2>
     <p>選擇今天要練習的服務</p>
@@ -1664,17 +1693,30 @@ async function pushToWebhook(feedbackData, transcript) {
 // ═════════════════════════════════════════
 // ⑩ 員工姓名（一次性詢問）
 // ═════════════════════════════════════════
-function ensureEmployeeName() {
-  let name = localStorage.getItem('skio_employee_name');
-  if (!name) {
-    name = prompt('歡迎使用 SKI-O 客服對話訓練系統！\n\n請輸入你的名字（只會問這一次）：');
-    if (name && name.trim()) {
-      localStorage.setItem('skio_employee_name', name.trim());
-    }
-  }
-  return name;
+function submitName() {
+  const input = document.getElementById('name-input');
+  const name = input.value.trim();
+  if (!name) return;
+  localStorage.setItem('skio_employee_name', name);
+  document.getElementById('name-modal').classList.add('hidden');
+  document.getElementById('service-modal').classList.remove('hidden');
 }
-window.addEventListener('DOMContentLoaded', () => { ensureEmployeeName(); });
+
+window.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('name-input');
+  const btn = document.getElementById('btn-name-submit');
+  // 預填上次的名字（若有），讓常用者按 Enter 就好；新員工要自己填
+  const savedName = localStorage.getItem('skio_employee_name');
+  if (savedName) input.value = savedName;
+  btn.disabled = !input.value.trim();
+  // 輸入時即時更新按鈕狀態
+  input.addEventListener('input', () => { btn.disabled = !input.value.trim(); });
+  // Enter 鍵也能送出
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !btn.disabled) submitName(); });
+  // 自動聚焦輸入框
+  input.focus();
+  if (savedName) input.select();  // 預填時全選，方便直接覆寫換人
+});
 
 // ═════════════════════════════════════════
 // ⑪ Render Feedback

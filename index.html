@@ -886,6 +886,7 @@ const CUSTOMER_PERSONAS_INDOOR = [
   {
     id: 'unhappy-parent',
     name: '課後不滿意的家長',
+    weight: 2,  // 客訴情境較難，降低出現機率（其他 persona 預設 weight 10 → 客訴 ~5% vs 其他各 ~24%）
     description: '帶小孩上完課、對教練或教學品質不滿',
     traits: '情緒中等（心疼小孩、失望但不暴怒）。會描述具體問題（「教練一直叫她再試一次也沒安撫」）。會說「花了 $3,600 結果⋯」暗示覺得不值得。不一定要退費、但希望被重視。可能會問「可以換教練嗎」「下次安排比較會教小孩的」。',
     examples: [
@@ -1109,6 +1110,18 @@ function getPersonas() {
   return CUSTOMER_PERSONAS_INDOOR;
 }
 
+// 加權隨機選 persona：persona.weight 預設 10。較難情境（如客訴）可設低 weight 降低出現機率
+function pickWeightedPersona(personas) {
+  const weighted = personas.map(p => ({ p, w: p.weight ?? 10 }));
+  const total = weighted.reduce((sum, x) => sum + x.w, 0);
+  let r = Math.random() * total;
+  for (const x of weighted) {
+    r -= x.w;
+    if (r <= 0) return x.p;
+  }
+  return weighted[weighted.length - 1].p;
+}
+
 function getServiceLabel() {
   if (currentService === 'hakuba') return '白馬滑雪套裝';
   if (currentService === 'mixed') return '混合（室內+白馬）';
@@ -1266,7 +1279,8 @@ async function startNewPractice() {
   setStatus('生成情境中...');
 
   const personas = getPersonas();
-  currentPersona = personas[Math.floor(Math.random() * personas.length)];
+  // 加權隨機：persona.weight 預設 10；客訴等較難情境設低權重（例如 2）降低新人撞到的機率
+  currentPersona = pickWeightedPersona(personas);
 
   showSystemMessage('AI 正在生成新的客戶情境...');
   showTypingIndicator();

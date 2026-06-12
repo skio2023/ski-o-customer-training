@@ -1231,6 +1231,11 @@ let hasFeedback = false;
 let currentService = null;
 let currentMode = null; // 'guided' or 'independent'
 
+// 練習紀錄追蹤（每一場都要被記錄）
+let currentSessionId = null;   // 本場練習的唯一編號
+let sessionLogged = false;     // 是否已記「開始」
+let sessionFinalized = false;  // 是否已記「完成」或「未完成」（避免重複）
+
 const $messages = document.getElementById('messages');
 const $emptyState = document.getElementById('empty-state');
 const $input = document.getElementById('input');
@@ -1293,6 +1298,8 @@ function updateImageButtons() {
 }
 
 function backToMenu() {
+  // 若練習進行中就回選單 → 視為「未完成」，先補記再清狀態
+  if (isInPractice) logSessionAbandoned(false);
   // 強制重置所有狀態（不用 confirm、避免 iframe 阻擋）
   isInPractice = false;
   isWaitingAI = false;
@@ -1460,6 +1467,9 @@ ${currentPersona.examples.map(e => '- ' + e).join('\n')}
       role: 'assistant',
       content: scenarioData.openingMessage
     });
+
+    // 練習已實際展開 → 立刻記一筆「開始」（即使之後中途離開也有紀錄）
+    logSessionStart();
 
     // 引導式：不在開場時給提示，等員工回覆後再給
     // showCoachHint 會在員工按「送出」後自動呼叫 generateGuidedHint()
@@ -1764,6 +1774,7 @@ async function endPractice() {
   }
 
   isInPractice = false;
+  sessionFinalized = true;  // 練習正在正常結束，避免之後被誤記為「未完成」
   $btnNew.disabled = false;
   $btnEnd.disabled = true;
   $input.disabled = true;
@@ -1877,7 +1888,7 @@ ${currentService === 'hakuba' ? '' : `
 
     renderFeedback(feedbackData);
     setStatus('練習結束');
-    pushToWebhook(feedbackData, transcript);
+    logSessionComplete(feedbackData, transcript);
 
   } catch (e) {
     $feedbackContent.innerHTML = `
@@ -1894,43 +1905,93 @@ ${currentService === 'hakuba' ? '' : `
 }
 
 // ═════════════════════════════════════════
-// ⑨ Google Sheets 推送
+// ⑨ Google Sheets 推送（每一場練習都記錄：開始 / 完成 / 未完成）
 // ═════════════════════════════════════════
 const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzth693t5rO_4OO0LHQU86Xqe3X5bTqa5aun4ktwmuFtlAlB98Y6RV03Fgt21I_Zw/exec';
 
-async function pushToWebhook(feedbackData, transcript) {
+// 產生本場練習的唯一編號（讓「開始」與「完成」兩列能配對）
+function genSessionId() {
+  return 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// 共用欄位（每種狀態都會帶）
+function buildBaseRecord(status) {
+  return {
+    timestamp: new Date().toISOString(),
+    sessionId: currentSessionId || '',
+    status: status,  // started（開始）/ completed（完成）/ abandoned（未完成）
+    employeeName: localStorage.getItem('skio_employee_name') || '未命名員工',
+    service: currentService || '',
+    mode: currentMode || '',
+    persona: currentPersona ? currentPersona.name : '',
+    scenario: currentScenario ? JSON.stringify(currentScenario) : ''
+  };
+}
+
+// 實際送出（一般情況用 fetch；離開頁面時用 sendBeacon 確保送得出去）
+function sendRecord(payload, useBeacon) {
   if (!WEBHOOK_URL) {
     console.log('Webhook URL 未設定，跳過推送');
     return;
   }
   try {
-    const employeeName = localStorage.getItem('skio_employee_name') || '未命名員工';
-    const payload = {
-      timestamp: new Date().toISOString(),
-      employeeName: employeeName,
-      service: currentService || 'indoor',
-      mode: currentMode || 'unknown',
-      persona: currentPersona ? currentPersona.name : '',
-      scenario: currentScenario ? JSON.stringify(currentScenario) : '',
-      scores: feedbackData.scores || {},
-      revealedPersona: feedbackData.revealedPersona || '',
-      personaInsight: feedbackData.personaInsight || '',
-      good: (feedbackData.good || []).join(' | '),
-      improve: (feedbackData.improve || []).join(' | '),
-      suggestion: feedbackData.suggestion || '',
-      referenceChapters: (feedbackData.referenceChapters || []).join(', '),
-      transcript: transcript || ''
-    };
+    const body = JSON.stringify(payload);
+    if (useBeacon && navigator.sendBeacon) {
+      // text/plain 避免觸發 CORS preflight；Apps Script 仍可由 e.postData.contents 取得 JSON
+      const blob = new Blob([body], { type: 'text/plain;charset=UTF-8' });
+      navigator.sendBeacon(WEBHOOK_URL, blob);
+      console.log('紀錄已用 beacon 送出:', payload.status);
+      return;
+    }
     fetch(WEBHOOK_URL, {
       method: 'POST',
       mode: 'no-cors',
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).then(() => console.log('練習紀錄已推送'))
+      body: body
+    }).then(() => console.log('紀錄已推送:', payload.status))
       .catch(err => console.log('推送失敗:', err.message));
   } catch (err) {
     console.log('推送準備出錯:', err);
   }
+}
+
+// ① 開始：練習實際展開時記一筆
+function logSessionStart() {
+  currentSessionId = genSessionId();
+  sessionLogged = true;
+  sessionFinalized = false;
+  sendRecord(buildBaseRecord('started'), false);
+}
+
+// ② 完成：含 4 維度評分與逐字稿
+function logSessionComplete(feedbackData, transcript) {
+  if (!sessionLogged) {            // 保險：萬一沒記到開始，補一個編號
+    currentSessionId = genSessionId();
+    sessionLogged = true;
+  }
+  sessionFinalized = true;
+  const payload = Object.assign(buildBaseRecord('completed'), {
+    scores: feedbackData.scores || {},
+    revealedPersona: feedbackData.revealedPersona || '',
+    personaInsight: feedbackData.personaInsight || '',
+    good: (feedbackData.good || []).join(' | '),
+    improve: (feedbackData.improve || []).join(' | '),
+    suggestion: feedbackData.suggestion || '',
+    referenceChapters: (feedbackData.referenceChapters || []).join(', '),
+    transcript: transcript || ''
+  });
+  sendRecord(payload, false);
+}
+
+// ③ 未完成：中途離開（回選單、關分頁）才補記，且只記一次
+function logSessionAbandoned(useBeacon) {
+  if (!sessionLogged || sessionFinalized) return;
+  sessionFinalized = true;
+  const payload = Object.assign(buildBaseRecord('abandoned'), {
+    transcript: conversationHistory.map(m => (m.role === 'user' ? '【員工】' : '【客戶】') + m.content).join('\n\n')
+  });
+  sendRecord(payload, useBeacon);
 }
 
 // ═════════════════════════════════════════
@@ -2112,6 +2173,12 @@ document.getElementById('btn-back').addEventListener('click', function(e) {
   e.preventDefault();
   e.stopPropagation();
   backToMenu();
+});
+
+// 關閉分頁 / 離開頁面時，若練習還在進行 → 用 beacon 補記「未完成」
+// 用 pagehide（真正離開才觸發）而非 visibilitychange，避免單純切換 App 被誤判
+window.addEventListener('pagehide', function() {
+  if (isInPractice) logSessionAbandoned(true);
 });
 $input.addEventListener('input', () => {
   $input.style.height = 'auto';

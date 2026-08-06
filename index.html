@@ -1617,7 +1617,9 @@ ${currentPersona.examples.map(e => '- ' + e).join('\n')}
    - ✅ 可以「謹慎、會多問、會比較」，但**對話節奏要正常**，不咄咄逼人
 7. 你不知道知識庫的具體內容，只是想了解室內滑雪
 8. 不要總結對話、不要說「以上是我的問題」
-9. 不要主動結束對話
+9. 【自然收尾／可主動結束】當你主要的疑問都得到合理回覆、對話到了真實客人會自然結束的點（例如已了解方案／費用／預約方式，說出「好我再考慮」「之後再預約」「今天先問到這，謝謝」這類話），就用一句自然的道別收尾，不要硬聊、也不要無限追問。
+   - 收尾的那一則訊息，最後請「單獨一行」輸出標記 [對話結束]（此標記系統會自動隱藏、不會顯示給員工，只用來判斷可以結束了）。
+   - 收尾前至少要有幾個來回、涵蓋你主要的問題；但也別沒完沒了。只有真的到自然結束點才輸出 [對話結束]，還想繼續問就不要輸出。
 10. 嚴格遵守你人格的訊息風格
 
 【照片處理】
@@ -1625,14 +1627,18 @@ ${currentPersona.examples.map(e => '- ' + e).join('\n')}
 - 你不要主動要求客服傳照片
 - 如果客服只用文字沒傳圖片，你可以繼續問細節
 
-直接以客戶身份回覆，不要加任何標註。`;
+直接以客戶身份回覆，不要加任何其他標註（只有真的要結束對話時，才在訊息最後單獨一行輸出 [對話結束]）。`;
 
-    const reply = await callClaude(customerSystemPrompt, conversationHistory, 500);
+    const rawReply = await callClaude(customerSystemPrompt, conversationHistory, 500);
+    const parsed = stripEndMark(rawReply);
+    const reply = parsed.text;
 
     conversationHistory.push({ role: 'assistant', content: reply });
 
     removeTypingIndicator();
-    addMessage('customer', reply);
+    if (reply) addMessage('customer', reply);
+
+    if (maybeAutoEnd(parsed.wantsEnd)) return;
 
     isWaitingAI = false;
     $input.disabled = false;
@@ -1746,10 +1752,14 @@ function sendImage(imageType) {
 
 直接以客戶身份回覆。`;
 
-      const reply = await callClaude(customerSystemPrompt, conversationHistory, 400);
+      const rawReply = await callClaude(customerSystemPrompt, conversationHistory, 400);
+      const parsed = stripEndMark(rawReply);
+      const reply = parsed.text;
       conversationHistory.push({ role: 'assistant', content: reply });
       removeTypingIndicator();
-      addMessage('customer', reply);
+      if (reply) addMessage('customer', reply);
+
+      if (maybeAutoEnd(parsed.wantsEnd)) return;
 
       isWaitingAI = false;
       $input.disabled = false;
@@ -1770,6 +1780,24 @@ function sendImage(imageType) {
 
 function enableImageButtons(enabled) {
   document.querySelectorAll('.btn-image').forEach(btn => { btn.disabled = !enabled; });
+}
+
+// 客戶「自然收尾」偵測：AI 收尾時會在訊息最後單獨一行輸出 [對話結束]（隱藏標記，不顯示給員工）
+const CONVO_END_MARK = '[對話結束]';
+function stripEndMark(reply) {
+  reply = reply || '';
+  const wantsEnd = reply.indexOf(CONVO_END_MARK) !== -1;
+  const text = reply.replace(/\[對話結束\]/g, '').replace(/\s+$/, '').trim();
+  return { text: text, wantsEnd: wantsEnd };
+}
+// 客戶自然收尾且已有足夠來回（≥2 個來回）→ 顯示完最後一則後，自動結束並跳評分
+function maybeAutoEnd(wantsEnd) {
+  if (!wantsEnd || conversationHistory.length < 4) return false;
+  isWaitingAI = false;
+  $input.disabled = true; $btnSend.disabled = true; enableImageButtons(false);
+  setStatus('客戶已結束對話，整理回饋中…');
+  setTimeout(function () { if (isInPractice) endPractice(); }, 1400);
+  return true;
 }
 
 // ═════════════════════════════════════════
